@@ -12,6 +12,11 @@ bool isRetryableAzureException(const Azure::Core::RequestFailedException & e, bo
     if (dynamic_cast<const Azure::Core::Http::TransportException *>(&e))
         return true;
 
+    /// Retry 408 consistently with the Azure SDK retry policy.
+    /// `PocoAzureHTTPClient` also uses it to represent transport timeouts.
+    if (e.StatusCode == Azure::Core::Http::HttpStatusCode::RequestTimeout)
+        return true;
+
     /// Azure may be provisioning access for quite a long time, so 403 is retriable in some cases
     /// It makes sense for IDisk::checkAccess() which is called early on startup and terminates the server/keeper if the check fails
     if (may_be_provisioning_access && e.StatusCode == Azure::Core::Http::HttpStatusCode::Forbidden)
